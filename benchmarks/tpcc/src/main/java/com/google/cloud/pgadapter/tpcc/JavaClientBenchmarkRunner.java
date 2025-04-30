@@ -45,6 +45,7 @@ class JavaClientBenchmarkRunner extends AbstractBenchmarkRunner {
 
   private static final Logger LOG = LoggerFactory.getLogger(JavaClientBenchmarkRunner.class);
   private Spanner spanner;
+  private DatabaseClient databaseClient;
   private final ThreadLocal<TransactionManager> transactionManagerThreadLocal = new ThreadLocal<>();
   private final ThreadLocal<TransactionContext> transactionThreadLocal = new ThreadLocal<>();
 
@@ -66,6 +67,12 @@ class JavaClientBenchmarkRunner extends AbstractBenchmarkRunner {
 
   void setup() throws SQLException, IOException {
     this.spanner = createSpanner();
+    this.databaseClient =
+        spanner.getDatabaseClient(
+            DatabaseId.of(
+                spannerConfiguration.getProject(),
+                spannerConfiguration.getInstance(),
+                spannerConfiguration.getDatabase()));
   }
 
   void teardown() throws SQLException {
@@ -74,12 +81,6 @@ class JavaClientBenchmarkRunner extends AbstractBenchmarkRunner {
 
   void executeStatement(String sql) throws SQLException {
     if (sql.equals("begin transaction")) {
-      DatabaseClient databaseClient =
-          spanner.getDatabaseClient(
-              DatabaseId.of(
-                  spannerConfiguration.getProject(),
-                  spannerConfiguration.getInstance(),
-                  spannerConfiguration.getDatabase()));
       transactionManagerThreadLocal.set(databaseClient.transactionManager());
       transactionThreadLocal.set(transactionManagerThreadLocal.get().begin());
     } else if (sql.equals("commit")) {

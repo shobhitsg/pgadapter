@@ -133,62 +133,61 @@ public class BenchmarkApplication implements CommandLineRunner {
         Statistics statistics = new Statistics(tpccConfiguration);
         ExecutorService executor =
             Executors.newFixedThreadPool(tpccConfiguration.getBenchmarkThreads());
-        for (int i = 0; i < tpccConfiguration.getBenchmarkThreads(); i++) {
-          if (tpccConfiguration
-              .getBenchmarkRunner()
-              .equals(TpccConfiguration.PGADAPTER_JDBC_RUNNER)) {
+        AbstractBenchmarkRunner runner;
+        switch (tpccConfiguration
+            .getBenchmarkRunner()) {
+          case TpccConfiguration.PGADAPTER_JDBC_RUNNER -> {
             // Run PGAdapter benchmark
             statistics.setRunnerName("PGAdapter benchmark");
-            executor.submit(
-                new JdbcBenchmarkRunner(
-                    statistics,
-                    pgadapterConnectionUrl,
-                    tpccConfiguration,
-                    pgAdapterConfiguration,
-                    spannerConfiguration,
-                    metrics));
-          } else if (tpccConfiguration
-              .getBenchmarkRunner()
-              .equals(TpccConfiguration.SPANNER_JDBC_RUNNER)) {
+            runner = new JdbcBenchmarkRunner(
+                statistics,
+                pgadapterConnectionUrl,
+                tpccConfiguration,
+                pgAdapterConfiguration,
+                spannerConfiguration,
+                metrics);
+          }
+          case TpccConfiguration.SPANNER_JDBC_RUNNER -> {
             // Run Spanner JDBC benchmark
             statistics.setRunnerName("Spanner JDBC benchmark");
-            executor.submit(
-                new JdbcBenchmarkRunner(
-                    statistics,
-                    spannerConnectionUrl,
-                    tpccConfiguration,
-                    pgAdapterConfiguration,
-                    spannerConfiguration,
-                    metrics));
-          } else if (tpccConfiguration
-              .getBenchmarkRunner()
-              .equals(TpccConfiguration.CLIENT_LIB_PG_RUNNER)) {
+            runner = new JdbcBenchmarkRunner(
+                statistics,
+                spannerConnectionUrl,
+                tpccConfiguration,
+                pgAdapterConfiguration,
+                spannerConfiguration,
+                metrics);
+          }
+          case TpccConfiguration.CLIENT_LIB_PG_RUNNER -> {
             // Run client library PG benchmark
             statistics.setRunnerName("Client library PG benchmark");
-            executor.submit(
-                new JavaClientBenchmarkRunner(
-                    statistics,
-                    tpccConfiguration,
-                    pgAdapterConfiguration,
-                    spannerConfiguration,
-                    metrics,
-                    Dialect.POSTGRESQL));
-          } else if (tpccConfiguration
-              .getBenchmarkRunner()
-              .equals(TpccConfiguration.CLIENT_LIB_GSQL_RUNNER)) {
+            runner = new JavaClientBenchmarkRunner(
+                statistics,
+                tpccConfiguration,
+                pgAdapterConfiguration,
+                spannerConfiguration,
+                metrics,
+                Dialect.POSTGRESQL);
+          }
+          case TpccConfiguration.CLIENT_LIB_GSQL_RUNNER -> {
             // Run client library PG benchmark
             statistics.setRunnerName("Client library GSQL benchmark");
-            executor.submit(
-                new JavaClientBenchmarkRunner(
-                    statistics,
-                    tpccConfiguration,
-                    pgAdapterConfiguration,
-                    spannerConfiguration,
-                    metrics,
-                    Dialect.GOOGLE_STANDARD_SQL));
+            runner = new JavaClientBenchmarkRunner(
+                statistics,
+                tpccConfiguration,
+                pgAdapterConfiguration,
+                spannerConfiguration,
+                metrics,
+                Dialect.GOOGLE_STANDARD_SQL);
           }
+          default -> throw new RuntimeException(
+              "Unknown benchmark runner option: " + tpccConfiguration.getBenchmarkRunner());
         }
 
+        runner.setup();
+        for (int i = 0; i < tpccConfiguration.getBenchmarkThreads(); i++) {
+          executor.submit(runner);
+        }
         Stopwatch watch = Stopwatch.createStarted();
         while (watch.elapsed().compareTo(tpccConfiguration.getBenchmarkDuration()) <= 0) {
           //noinspection BusyWait
@@ -198,6 +197,13 @@ public class BenchmarkApplication implements CommandLineRunner {
         executor.shutdownNow();
         if (!executor.awaitTermination(60L, TimeUnit.SECONDS)) {
           throw new TimeoutException("Timed out while waiting for benchmark runners to shut down");
+        }
+
+        try {
+          runner.teardown();
+        } catch (Throwable teardownThrowable) {
+          teardownThrowable.printStackTrace();
+          LOG.error("Failed to clean up resources:" + statistics.getRunnerName(), teardownThrowable);
         }
       } else {
         throw new RuntimeException(

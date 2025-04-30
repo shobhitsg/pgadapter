@@ -16,6 +16,7 @@ package com.google.cloud.pgadapter.tpcc;
 import com.google.cloud.pgadapter.tpcc.config.PGAdapterConfiguration;
 import com.google.cloud.pgadapter.tpcc.config.SpannerConfiguration;
 import com.google.cloud.pgadapter.tpcc.config.TpccConfiguration;
+import com.google.cloud.spanner.AbortedException;
 import com.google.cloud.spanner.Dialect;
 import com.google.cloud.spanner.jdbc.JdbcSqlExceptionFactory.JdbcAbortedException;
 import java.io.IOException;
@@ -68,7 +69,6 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   public void run() {
     LOG.info("Starting benchmark runner: " + statistics.getRunnerName());
     try {
-      setup();
       runTransactions();
       LOG.info("Stopping benchmark runner: " + statistics.getRunnerName());
     } catch (InterruptedException interruptedException) {
@@ -77,13 +77,6 @@ abstract class AbstractBenchmarkRunner implements Runnable {
       throwable.printStackTrace();
       LOG.error("Benchmark runner failed:" + statistics.getRunnerName(), throwable);
       failed = true;
-    } finally {
-      try {
-        teardown();
-      } catch (Throwable teardownThrowable) {
-        teardownThrowable.printStackTrace();
-        LOG.error("Failed to clean up resources:" + statistics.getRunnerName(), teardownThrowable);
-      }
     }
   }
 
@@ -121,6 +114,9 @@ abstract class AbstractBenchmarkRunner implements Runnable {
           statistics.incAborted();
         } else if (exception instanceof JdbcAbortedException) {
           LOG.debug("Transaction aborted by Cloud Spanner via Spanner JDBC");
+          statistics.incAborted();
+        } else if (exception instanceof AbortedException) {
+          LOG.debug("Transaction aborted by Cloud Spanner", exception);
           statistics.incAborted();
         } else {
           LOG.warn("Transaction failed", exception);
