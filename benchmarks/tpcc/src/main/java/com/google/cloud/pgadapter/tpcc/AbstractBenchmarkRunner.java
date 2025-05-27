@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -211,6 +212,13 @@ abstract class AbstractBenchmarkRunner implements Runnable {
         "INSERT INTO new_orders (o_id, c_id, d_id, w_id) " + "VALUES (?,?,?,?)",
         new Object[] {districtNextOrderId, customerId, districtId, warehouseId});
 
+    String stockUpdateQuery = "UPDATE stock SET s_quantity = ? WHERE s_i_id = ? AND w_id= ?";
+    String orderLineInsertQuery = "INSERT INTO order_line (o_id, c_id, d_id, w_id, ol_number, ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info) "
+        + "VALUES (?,?,?,?,?,?,?,?,?,?)";
+
+    List<Object[]> stockParamList = new ArrayList<>();
+    List<Object[]> orderLineParamList = new ArrayList<>();
+
     for (int line = 0; line < orderLineCount; line++) {
       long orderLineSupplyWarehouseId = supplyWarehouses[line];
       long orderLineItemId = itemIds[line];
@@ -251,9 +259,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
         stockQuantity = stockQuantity - orderLineQuantity + 91;
       }
 
-      executeParamStatement(
-          "UPDATE stock " + "SET s_quantity = ? " + "WHERE s_i_id = ? AND w_id= ?",
-          new Object[] {stockQuantity, orderLineItemId, orderLineSupplyWarehouseId});
+      stockParamList.add(new Object[] {stockQuantity, orderLineItemId, orderLineSupplyWarehouseId});
 
       BigDecimal totalTax = BigDecimal.ONE.add(warehouseTax).add(districtTax);
       BigDecimal discountFactor = BigDecimal.ONE.subtract(discount);
@@ -262,9 +268,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
               .multiply(itemPrice)
               .multiply(totalTax)
               .multiply(discountFactor);
-      executeParamStatement(
-          "INSERT INTO order_line (o_id, c_id, d_id, w_id, ol_number, ol_i_id, ol_supply_w_id, ol_quantity, ol_amount, ol_dist_info) "
-              + "VALUES (?,?,?,?,?,?,?,?,?,?)",
+      orderLineParamList.add(
           new Object[] {
             districtNextOrderId,
             customerId,
@@ -278,7 +282,8 @@ abstract class AbstractBenchmarkRunner implements Runnable {
             orderLineDistrictInfo
           });
     }
-
+    executeParamStatements(orderLineInsertQuery, orderLineParamList);
+    executeParamStatements(stockUpdateQuery, stockParamList);
     LOG.debug("Committing new_order transaction");
     executeStatement("commit");
   }
@@ -667,6 +672,8 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   abstract Object[] paramQueryRow(String sql, Object[] params) throws SQLException;
 
   abstract void executeParamStatement(String sql, Object[] params) throws SQLException;
+
+  abstract void executeParamStatements(String sql, List<Object[]> params) throws SQLException;
 
   abstract List<Object[]> executeParamQuery(String sql, Object[] params) throws SQLException;
 }

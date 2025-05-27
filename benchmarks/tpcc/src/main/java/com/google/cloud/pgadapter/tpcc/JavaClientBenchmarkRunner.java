@@ -161,6 +161,11 @@ class JavaClientBenchmarkRunner extends AbstractBenchmarkRunner {
     metrics.recordLatency(executionDuration.toMillis());
   }
 
+  @Override
+  void executeParamStatements(String sql, List<Object[]> params) throws SQLException {
+    throw new UnsupportedOperationException("Yet not supported");
+  }
+
   public static class ParametersInfo {
     public final int numberOfParameters;
     public final String sqlWithNamedParameters;

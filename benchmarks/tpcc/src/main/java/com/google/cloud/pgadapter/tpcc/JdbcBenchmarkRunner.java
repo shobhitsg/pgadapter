@@ -13,6 +13,7 @@
 // limitations under the License.
 package com.google.cloud.pgadapter.tpcc;
 
+import com.google.cloud.pgadapter.tpcc.JavaClientBenchmarkRunner.ParametersInfo;
 import com.google.cloud.pgadapter.tpcc.config.PGAdapterConfiguration;
 import com.google.cloud.pgadapter.tpcc.config.SpannerConfiguration;
 import com.google.cloud.pgadapter.tpcc.config.TpccConfiguration;
@@ -145,6 +146,21 @@ class JdbcBenchmarkRunner extends AbstractBenchmarkRunner {
       statement.execute();
       Duration executionDuration = stopwatch.elapsed();
       metrics.recordLatency(executionDuration.toMillis());
+    }
+  }
+
+  void executeParamStatements(String sql, List<Object[]> paramList) throws SQLException {
+    Stopwatch totalStopwatch = Stopwatch.createStarted(); // To measure total time
+    try (PreparedStatement statement = connectionThreadLocal.get().prepareStatement(sql)) {
+      for (Object[] params : paramList) {
+        setParams(statement, params);
+        statement.addBatch();
+      }
+      statement.executeBatch();
+      statement.clearBatch();
+    } finally {
+      Duration totalExecutionDuration = totalStopwatch.elapsed();
+      metrics.recordLatency(totalExecutionDuration.toMillis());
     }
   }
 
