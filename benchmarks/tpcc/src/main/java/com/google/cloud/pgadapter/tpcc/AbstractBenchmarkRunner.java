@@ -50,6 +50,8 @@ abstract class AbstractBenchmarkRunner implements Runnable {
 
   private boolean failed;
 
+  long warehouseId;
+
   AbstractBenchmarkRunner(
       Statistics statistics,
       TpccConfiguration tpccConfiguration,
@@ -151,7 +153,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   private void newOrder() throws SQLException {
     LOG.debug("Executing new_order");
 
-    long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
+    // long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
     long districtId = Long.reverse(random.nextInt(tpccConfiguration.getDistrictsPerWarehouse()));
     long customerId = Long.reverse(random.nextInt(tpccConfiguration.getCustomersPerDistrict()));
 
@@ -291,7 +293,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   private void payment() throws SQLException {
     LOG.debug("Executing payment");
 
-    long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
+    // long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
     long districtId = Long.reverse(random.nextInt(tpccConfiguration.getDistrictsPerWarehouse()));
     long customerId = Long.reverse(random.nextInt(tpccConfiguration.getCustomersPerDistrict()));
     BigDecimal amount = BigDecimal.valueOf(random.nextInt(1, 5000));
@@ -457,7 +459,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   private void orderStatus() throws SQLException {
     LOG.debug("Executing order_status");
 
-    long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
+    // long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
     long districtId = Long.reverse(random.nextInt(tpccConfiguration.getDistrictsPerWarehouse()));
     long customerId = Long.reverse(random.nextInt(tpccConfiguration.getCustomersPerDistrict()));
 
@@ -546,7 +548,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   private void delivery() throws SQLException {
     LOG.debug("Executing delivery");
 
-    long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
+    // long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
     long carrierId = Long.reverse(random.nextInt(10));
     Object[] row;
 
@@ -605,7 +607,7 @@ abstract class AbstractBenchmarkRunner implements Runnable {
   private void stockLevel() throws SQLException {
     LOG.debug("Executing stock_level");
 
-    long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
+    // long warehouseId = Long.reverse(random.nextInt(tpccConfiguration.getWarehouses()));
     long districtId = Long.reverse(random.nextInt(tpccConfiguration.getDistrictsPerWarehouse()));
     int level = random.nextInt(10, 21);
 

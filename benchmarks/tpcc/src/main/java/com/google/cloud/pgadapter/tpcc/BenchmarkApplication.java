@@ -36,6 +36,9 @@ import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -134,6 +137,7 @@ public class BenchmarkApplication implements CommandLineRunner {
         Statistics statistics = new Statistics(tpccConfiguration);
         ExecutorService executor =
             Executors.newFixedThreadPool(tpccConfiguration.getBenchmarkThreads());
+        List<Long> warehouseIds = createTerminals();
         for (int i = 0; i < tpccConfiguration.getBenchmarkThreads(); i++) {
           if (tpccConfiguration
               .getBenchmarkRunner()
@@ -147,7 +151,8 @@ public class BenchmarkApplication implements CommandLineRunner {
                     tpccConfiguration,
                     pgAdapterConfiguration,
                     spannerConfiguration,
-                    metrics));
+                    metrics,
+                    warehouseIds.get(i)));
           } else if (tpccConfiguration
               .getBenchmarkRunner()
               .equals(TpccConfiguration.SPANNER_JDBC_RUNNER)) {
@@ -160,7 +165,8 @@ public class BenchmarkApplication implements CommandLineRunner {
                     tpccConfiguration,
                     pgAdapterConfiguration,
                     spannerConfiguration,
-                    metrics));
+                    metrics,
+                    warehouseIds.get(i)));
           } else if (tpccConfiguration
               .getBenchmarkRunner()
               .equals(TpccConfiguration.CLIENT_LIB_PG_RUNNER)) {
@@ -173,7 +179,8 @@ public class BenchmarkApplication implements CommandLineRunner {
                     pgAdapterConfiguration,
                     spannerConfiguration,
                     metrics,
-                    Dialect.POSTGRESQL));
+                    Dialect.POSTGRESQL,
+                    warehouseIds.get(i)));
           } else if (tpccConfiguration
               .getBenchmarkRunner()
               .equals(TpccConfiguration.CLIENT_LIB_GSQL_RUNNER)) {
@@ -186,7 +193,8 @@ public class BenchmarkApplication implements CommandLineRunner {
                     pgAdapterConfiguration,
                     spannerConfiguration,
                     metrics,
-                    Dialect.GOOGLE_STANDARD_SQL));
+                    Dialect.GOOGLE_STANDARD_SQL,
+                    warehouseIds.get(i)));
           }
         }
 
@@ -282,5 +290,46 @@ public class BenchmarkApplication implements CommandLineRunner {
     server.awaitRunning();
 
     return server;
+  }
+
+  private List<Long> createTerminals() throws SQLException {
+    Long[] terminals = new Long[tpccConfiguration.getBenchmarkThreads()];
+    int numWarehouses = tpccConfiguration.getWarehouses();
+    int numTerminals = tpccConfiguration.getBenchmarkThreads();
+    // We distribute terminals evenly across the warehouses
+    // Eg. if there are 10 terminals across 7 warehouses, they
+    // are distributed as
+    // 1, 1, 2, 1, 2, 1, 2
+    final double terminalsPerWarehouse = (double) numTerminals / numWarehouses; // 64/200 = 0.32
+    int workerId = 0;
+    for (int w = 0; w < numWarehouses; w++) {
+      // Compute the number of terminals in *this* warehouse
+      int lowerTerminalId = (int) (w * terminalsPerWarehouse); // 0. 0.32
+      int upperTerminalId = (int) ((w + 1) * terminalsPerWarehouse); // 0.32, 0.64
+      // protect against double rounding errors
+      int w_id = w + 1; // 1
+      if (w_id == numWarehouses) { // false
+        upperTerminalId = numTerminals;
+      }
+      int numWarehouseTerminals = upperTerminalId - lowerTerminalId; // 0
+
+      System.out.printf(
+          "w_id %d = %d terminals [lower=%d / upper%d]%n",
+          w_id, numWarehouseTerminals, lowerTerminalId, upperTerminalId);
+      final double districtsPerTerminal =
+          10 / (double) numWarehouseTerminals; //
+      for (int terminalId = 0; terminalId < numWarehouseTerminals; terminalId++) {
+        int lowerDistrictId = (int) (terminalId * districtsPerTerminal);
+        int upperDistrictId = (int) ((terminalId + 1) * districtsPerTerminal);
+        if (terminalId + 1 == numWarehouseTerminals) {
+          upperDistrictId = 10;
+        }
+        lowerDistrictId += 1;
+
+        workerId++;
+        terminals[lowerTerminalId + terminalId] = Long.reverse(w_id - 1);
+      }
+    }
+    return Arrays.asList(terminals);
   }
 }

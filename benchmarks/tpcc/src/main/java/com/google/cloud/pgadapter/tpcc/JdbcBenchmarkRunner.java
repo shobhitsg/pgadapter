@@ -49,7 +49,8 @@ class JdbcBenchmarkRunner extends AbstractBenchmarkRunner {
       TpccConfiguration tpccConfiguration,
       PGAdapterConfiguration pgAdapterConfiguration,
       SpannerConfiguration spannerConfiguration,
-      Metrics metrics) {
+      Metrics metrics,
+      long warehouseId) {
     super(
         statistics,
         tpccConfiguration,
@@ -58,6 +59,7 @@ class JdbcBenchmarkRunner extends AbstractBenchmarkRunner {
         metrics,
         Dialect.POSTGRESQL);
     this.connectionUrl = connectionUrl;
+    this.warehouseId = warehouseId;
   }
 
   void setup() throws SQLException, IOException {

@@ -56,7 +56,8 @@ class JavaClientBenchmarkRunner extends AbstractBenchmarkRunner {
       PGAdapterConfiguration pgAdapterConfiguration,
       SpannerConfiguration spannerConfiguration,
       Metrics metrics,
-      Dialect dialect) {
+      Dialect dialect,
+      long warehouseId) {
     super(
         statistics,
         tpccConfiguration,
@@ -64,6 +65,7 @@ class JavaClientBenchmarkRunner extends AbstractBenchmarkRunner {
         spannerConfiguration,
         metrics,
         dialect);
+    this.warehouseId = warehouseId;
   }
 
   void setup() throws SQLException, IOException {
