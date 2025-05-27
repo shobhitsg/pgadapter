@@ -78,7 +78,7 @@ create table IF NOT EXISTS orders (
     o_carrier_id int,
     o_ol_cnt int,
     o_all_local int,
-    PRIMARY KEY(w_id, d_id, c_id, o_id)
+    PRIMARY KEY(w_id, d_id, o_id)
 );
 
 -- NEW_ORDER table
@@ -139,11 +139,7 @@ create table IF NOT EXISTS item (
 );
 
 CREATE INDEX idx_customer ON customer (w_id,d_id,c_last,c_first);
-CREATE INDEX idx_orders ON orders (w_id,d_id,o_id);
-CREATE INDEX fkey_stock_2 ON stock (s_i_id);
-CREATE INDEX fkey_order_line_2 ON order_line (ol_supply_w_id,ol_i_id);
-CREATE INDEX fkey_history_1 ON history (w_id,d_id,c_id);
-CREATE INDEX fkey_history_2 ON history (h_w_id,h_d_id );
+CREATE INDEX idx_orders ON orders (w_id,d_id,c_id,o_id);
 
 ALTER TABLE new_orders ADD CONSTRAINT fkey_new_orders_1_ FOREIGN KEY(w_id,d_id,c_id,o_id) REFERENCES orders(w_id,d_id,c_id,o_id);
 ALTER TABLE orders ADD CONSTRAINT fkey_orders_1_ FOREIGN KEY(w_id,d_id,c_id) REFERENCES customer(w_id,d_id,c_id);
