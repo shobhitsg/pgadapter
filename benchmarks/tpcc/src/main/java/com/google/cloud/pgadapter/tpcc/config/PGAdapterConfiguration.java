@@ -41,6 +41,8 @@ public class PGAdapterConfiguration {
 
   private int maxSessions = 400;
 
+  private boolean batchInserts;
+
   public boolean isInProcess() {
     return inProcess;
   }
@@ -127,5 +129,13 @@ public class PGAdapterConfiguration {
 
   public void setMaxSessions(int maxSessions) {
     this.maxSessions = maxSessions;
+  }
+
+  public boolean isBatchInserts() {
+    return batchInserts;
+  }
+
+  public void setBatchInserts(boolean batchInserts) {
+    this.batchInserts = batchInserts;
   }
 }
