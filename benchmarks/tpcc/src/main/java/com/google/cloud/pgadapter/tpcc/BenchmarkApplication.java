@@ -83,7 +83,7 @@ public class BenchmarkApplication implements CommandLineRunner {
     String pgadapterConnectionUrl =
         server == null
             ? pgAdapterConfiguration.getConnectionUrl()
-            : String.format("jdbc:postgresql://localhost:%d/tpcc?reWriteBatchedInserts=%s",
+            : String.format("jdbc:postgresql://localhost:%d/tpcc?sslmode=disable&reWriteBatchedInserts=%s",
                 server.getLocalPort(), pgAdapterConfiguration.isBatchInserts());
     String spannerConnectionUrl =
         String.format(
